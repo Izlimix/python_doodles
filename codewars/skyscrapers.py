@@ -1,5 +1,3 @@
-from math import isqrt
-
 """
     Problem statement: https://www.codewars.com/kata/5671d975d81d6c1c87000022
     Solves a skyscraper puzzle of size 4x4, with clues given in clockwise order.
@@ -11,7 +9,7 @@ from math import isqrt
 """
 
 def solve_puzzle(clues):
-    n = isqrt(len(clues))
+    n = len(clues) // 4
     grid = [[None for _ in range(n)] for _ in range(n)]
     symbols = set(range(1, n+1))
     sol = _brute_recursive(clues, grid, symbols, side=n)
@@ -21,7 +19,7 @@ def solve_puzzle(clues):
         return None
 
 def _brute_recursive(clues, grid, symbols, *, blanksym=None, side=None):
-    if not _is_valid(clues, grid, blanksym=blanksym, side=side):
+    if not _is_valid(clues, grid, symbols, blanksym=blanksym, side=side):
         return None
 
     pos = _next_blank(grid)
@@ -33,17 +31,17 @@ def _brute_recursive(clues, grid, symbols, *, blanksym=None, side=None):
         possibles = symbols - _neighbours(grid, pos)
         for v in possibles:
             grid[x][y] = v
-            attempt = _brute_recursive(clues, grid)
+            attempt = _brute_recursive(clues, grid, symbols, blanksym=blanksym, side=side)
             if attempt:
                 return attempt #Solved
             else:
                 grid[x][y] = blanksym
         return None
 
-def _is_valid(clues, grid, *, blanksym=None, side=None):
+def _is_valid(clues, grid, symbols, *, blanksym=None, side=None):
     # Does the incomplete grid violate any rules?
     # The height of the skyscrapers is between 1 and 4 (or is incomplete)
-    heights = {1, 2, 3, 4, blanksym}
+    heights = symbols.union({blanksym})
     if not all(e in heights for row in grid for e in row):
         return False
 
@@ -86,39 +84,6 @@ def _check_row(seq, c1, c2):
         # Incomplete row, just check for "good enough"
         return ((not c1) or vis_l <= c1) and ((not c2) or vis_r <= c2)
 
-
-def _is_complete(clues, grid):
-    # The height of the skyscrapers is between 1 and 4
-    heights = {1, 2, 3, 4}
-    if not all(e in heights for row in grid for e in row):
-        return False
-
-    # No two skyscrapers in a row or column may have the same number of floors
-    for row in grid:
-        if len(set(row)) < len(row):
-            return False
-    for c in range(len(grid[0])):
-        col = _col(grid, c)
-        if len(set(col)) < len(col):
-            return False
-
-    (vert_clues, horiz_clues) = _pair_clues(clues)
-    for i in range(len(vert_clues)):
-        # column clues valid?
-        (c1, c2) = vert_clues[i]
-        col = _col(grid, i)
-        if not _check_row(col, c1, c2):
-            return False
-
-    for i in range(len(horiz_clues)):
-        #row clues valid?
-        (c1, c2) = horiz_clues[i]
-        row = grid[i]
-        if not _check_row(row, c1, c2):
-            return False
-
-    return True
-
 def _neighbours(grid, pos, *, blanksym=None):
     (x, y) = pos
     ns = set(grid[x])
@@ -126,7 +91,7 @@ def _neighbours(grid, pos, *, blanksym=None):
     ns.remove(blanksym)
     return ns
 
-def _next_blank(grid, * blanksym=None):
+def _next_blank(grid, *, blanksym=None):
     # Next blank (None) in l-r, top-bottom order
     for x in range(len(grid[0])):
         for y in range(len(grid)):
@@ -154,7 +119,7 @@ def _pair_clues(clues, n=None):
     # Given a list of clues that correspond to cols/rows in clockwise order,
     # for some grid-size n (default: sqrt of len clues)
     if n is None:
-        n = isqrt(len(clues))
+        n = len(clues) // 4
     # Returns two lists ([cols], [rows]), where each element is a pair of clues for the same col/row
     cols = list(zip(clues[:n], clues[2*n:3*n][::-1]))
     rows = list(zip(clues[n:2*n], clues[3*n:][::-1]))
