@@ -28,13 +28,13 @@ def main(input):
 
     # Executing rover instructions
     for r in rovers:
-        (x1, y1, d1) = r.execute_instructions()
+        r.execute_instructions()
         #print(f"{r}: {x1, y1, d1}")
 
     # The output should be each rover's final coordinates and heading
     return "\n".join(f"{r.x} {r.y} {r.orientation}" for r in rovers)
 
-def __sample_inp():
+def _sample_inp():
     return """
         5 5
         1 2 N
@@ -43,7 +43,7 @@ def __sample_inp():
         MMRMMRMRRM
     """
 
-def __colliding_inp():
+def _colliding_inp():
     return """
         5 5
         1 2 N
@@ -52,6 +52,17 @@ def __colliding_inp():
         MMRMMRMRRM
         5 5 S
         MMMMM
+    """
+
+def _out_of_bounds_inp():
+    return """
+        5 5
+        1 2 N
+        LMLMLMLMM
+        3 3 E
+        MMRMMRMRRM
+        5 5 S
+        LM
     """
 
 class Rover:
@@ -84,8 +95,6 @@ class Rover:
             else:
                 raise Exception(f"Rover does not know how to execute {command}")
 
-        return (self.x, self.y, self.orientation)
-
     def rotate_right(self):
         i = Rover.directions.index(self.orientation)
         l = len(Rover.directions)
@@ -106,7 +115,7 @@ class Rover:
             plateau[(x1, y1)] = plateau.pop((self.x, self.y))
             (self.x, self.y) = (x1, y1)
         else:
-            raise Exception(f"Rover {self} tried to move to {x1, y1}, which is already occupied")
+            raise Exception(f"Rover {self} tried to move to {x1, y1}, which is an invalid move")
 
     def valid_move(self, x1, y1):
         # Checks if the intended move is valid. New pos should be:
@@ -124,7 +133,6 @@ class Rover:
         return True
 
 
-
 if __name__ == "__main__":
     import sys
 
@@ -137,7 +145,8 @@ if __name__ == "__main__":
     else:
         print("Sample task:")
         #print("----")
-        output = main(__sample_inp())
-        #output = main(__colliding_inp())
+        output = main(_sample_inp())
+        #output = main(_colliding_inp())
+        #output = main(_out_of_bounds_inp())
         print("---- Output: ----")
         print(output)
