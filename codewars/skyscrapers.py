@@ -20,6 +20,8 @@ class Skyscraper:
         self.heights = set(range(1, self.n+1))
         self.symbols = self.heights.union({self.blanksym})
 
+        #self.debug_recurses = 0
+
     def solve(self):
         sol = self.brute_recursive()
         if sol:
@@ -28,8 +30,16 @@ class Skyscraper:
             return None
 
     def brute_recursive(self):
-        if not self.is_valid():
-            return None
+        #self.debug_recurses += 1
+        #if (self.debug_recurses % 100 == 0):
+        #    print(f"recurses: {self.debug_recurses}")
+        #    for row in self.grid:
+        #        print("".join(str(c) for c in row))
+
+        #print("----------Recurse:-----------")
+        #print(f"grid:")
+        #for row in self.grid:
+        #    print("".join(str(c) for c in row))
 
         pos = self._next_blank()
         if not pos:
@@ -40,12 +50,62 @@ class Skyscraper:
             possibles = self.heights - self._neighbours(x, y)
             for v in possibles:
                 self.grid[x][y] = v
-                attempt = self.brute_recursive()
-                if attempt:
-                    return attempt #Solved
+                if self.valid_move(x, y, v):
+                    attempt = self.brute_recursive()
+                    if attempt:
+                        return attempt #Solved
+                    else:
+                        #print(f"Ran out of options at {x,y}, backtracking...")
+                        self.grid[x][y] = self.blanksym
                 else:
                     self.grid[x][y] = self.blanksym
             return None
+
+    def valid_move(self, x, y, v):
+        #print("--")
+        #print(f"is value {v} at {x,y} valid?")
+        # Check whether putting v in position (x,y) would violate any rules.
+        row = self.grid[x]
+        col = self._col(y)
+
+        # Heights: is v's height in range?
+        if v not in self.heights:
+            #print("Height not in range")
+            return False
+
+        # Unique: No two skyscrapers in a row or column may have the same number of floors (except blanksym)
+        floors_r = [f for f in row if f is not self.blanksym]
+        if len(set(floors_r)) < len(floors_r):
+            #print("Row not unique")
+            return False
+        floors_c = [f for f in col if f is not self.blanksym]
+        if len(set(floors_c)) < len(floors_c):
+            #print("Column not unique")
+            return False
+
+        # Clues:
+        (vert_clues, horiz_clues) = self._pair_clues(self.clues, n=self.n)
+        #print(f"v_clues: {vert_clues}")
+        #print(f"h_clues: {horiz_clues}")
+        (v_c1, v_c2) = vert_clues[y]
+        (r_c1, r_c2) = horiz_clues[x]
+        if not self._check_row(col, v_c1, v_c2):
+            #print(f"Failed col clues v(c1, c2) {v_c1, v_c2}")
+            #vis_l = self._count_visible(col)
+            #vis_r = self._count_visible(col[::-1])
+            #print(f"col: {col}")
+            #print(f"visible l,r {vis_l, vis_r}")
+            return False
+        if not self._check_row(row, r_c1, r_c2):
+            #print(f"Failed row clues r(c1, c2) {r_c1, r_c2}")
+            #vis_l = self._count_visible(row)
+            #vis_r = self._count_visible(row[::-1])
+            #print(f"row: {row}")
+            #print(f"visible l,r {vis_l, vis_r}")
+            return False
+
+
+        return True
 
     def is_valid(self):
         # Does the incomplete grid violate any rules?
@@ -75,7 +135,7 @@ class Skyscraper:
 
         for i in range(len(horiz_clues)):
             #row clues valid?
-            (c2, c1) = horiz_clues[i]
+            (c1, c2) = horiz_clues[i]
             row = self.grid[i]
             if not self._check_row(row, c1, c2):
                 return False
@@ -99,25 +159,23 @@ class Skyscraper:
     def _col(self, c):
         return [col[c] for col in self.grid]
 
-    @classmethod
-    def _check_row(cls, seq, c1, c2):
-        vis_l = cls._count_visible(seq)
-        vis_r = cls._count_visible(seq[::-1])
-        if None not in seq:
+    def _check_row(self, seq, c1, c2):
+        vis_l = self._count_visible(seq)
+        vis_r = self._count_visible(seq[::-1])
+        if self.blanksym not in seq:
             # If the row is complete, then the clues should be exact (if not 0).
             return ((not c1) or vis_l == c1) and ((not c2) or vis_r == c2)
         else:
             # Incomplete row, just check for "good enough"
             return ((not c1) or vis_l <= c1) and ((not c2) or vis_r <= c2)
 
-    @staticmethod
-    def _count_visible(seq, *, blanksym=None):
+    def _count_visible(self, seq):
         # Take values while next value is > the prev highest.
         # Stops if it reaches a blank (since whatever's placed there might block the count later)
         highest = 0
         count = 0
         for v in seq:
-            if v is blanksym:
+            if v is self.blanksym:
                 break
             if v > highest:
                 highest = v
@@ -132,5 +190,6 @@ class Skyscraper:
             n = len(clues) // 4
         # Returns two lists ([cols], [rows]), where each element is a pair of clues for the same col/row
         cols = list(zip(clues[:n], clues[2*n:3*n][::-1]))
-        rows = list(zip(clues[n:2*n], clues[3*n:][::-1]))
+        #rows = list(zip(clues[n:2*n], clues[3*n:][::-1]))
+        rows = list(zip(clues[3*n:][::-1], clues[n:2*n]))
         return (cols, rows)
